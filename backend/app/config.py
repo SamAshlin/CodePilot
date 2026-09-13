@@ -27,7 +27,16 @@ QDRANT_URL = os.getenv(
     "http://localhost:6333"
 )
 
+QDRANT_API_KEY = os.getenv(
+    "QDRANT_API_KEY"
+)
+
 QDRANT_COLLECTION = os.getenv(
     "QDRANT_COLLECTION",
     "codebase_chunks"
+)
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
 )
