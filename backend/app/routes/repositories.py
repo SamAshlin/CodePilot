@@ -117,6 +117,13 @@ def create_repository(request: RepositoryRequest):
             commit_sha
         )
 
+        # -----------------------------------------
+                # 7. Create Qdrant collection
+                # -----------------------------------------
+        
+        create_collection()
+        
+
 
         # -----------------------------------------
         # 6. Check same repository + same commit
@@ -158,12 +165,7 @@ def create_repository(request: RepositoryRequest):
             }
 
 
-        # -----------------------------------------
-        # 7. Create Qdrant collection
-        # -----------------------------------------
-
-        create_collection()
-
+        
 
         # -----------------------------------------
         # 8. Index repository

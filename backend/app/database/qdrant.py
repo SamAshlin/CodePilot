@@ -13,19 +13,11 @@ from app.config import (
 )
 
 
-# -----------------------------------------
-# Qdrant client
-# -----------------------------------------
-
 client = QdrantClient(
     url=QDRANT_URL,
     api_key=QDRANT_API_KEY
 )
 
-
-# -----------------------------------------
-# Create collection and payload indexes
-# -----------------------------------------
 
 def create_collection():
 
@@ -35,7 +27,6 @@ def create_collection():
         collection.name
         for collection in collections.collections
     ]
-
 
     # -----------------------------------------
     # Create collection if it doesn't exist
@@ -53,7 +44,6 @@ def create_collection():
             )
         )
 
-
     # -----------------------------------------
     # Get collection information
     # -----------------------------------------
@@ -62,10 +52,7 @@ def create_collection():
         QDRANT_COLLECTION
     )
 
-    payload_schema = (
-        collection_info.payload_schema
-    )
-
+    payload_schema = collection_info.payload_schema
 
     # -----------------------------------------
     # Create repository_id index
@@ -82,6 +69,9 @@ def create_collection():
             field_schema=PayloadSchemaType.KEYWORD
         )
 
+        print(
+            "Created Qdrant index: repository_id"
+        )
 
     # -----------------------------------------
     # Create commit_sha index
@@ -98,15 +88,14 @@ def create_collection():
             field_schema=PayloadSchemaType.KEYWORD
         )
 
+        print(
+            "Created Qdrant index: commit_sha"
+        )
 
-# -----------------------------------------
-# Insert chunks into Qdrant
-# -----------------------------------------
 
 def insert_chunks(chunks):
 
     points = []
-
 
     for chunk in chunks:
 
@@ -120,7 +109,6 @@ def insert_chunks(chunks):
 
                 payload={
 
-                    # Repository information
                     "repository_id":
                         chunk["repository_id"],
 
@@ -129,29 +117,21 @@ def insert_chunks(chunks):
                             "commit_sha"
                         ),
 
-
-                    # File information
                     "file_path":
                         chunk["file_path"],
 
                     "language":
                         chunk["language"],
 
-
-                    # Source location
                     "start_line":
                         chunk["start_line"],
 
                     "end_line":
                         chunk["end_line"],
 
-
-                    # Code
                     "content":
                         chunk["content"],
 
-
-                    # Tree-sitter metadata
                     "chunk_type":
                         chunk.get(
                             "chunk_type",
@@ -176,11 +156,6 @@ def insert_chunks(chunks):
                 }
             )
         )
-
-
-    # -----------------------------------------
-    # Insert points
-    # -----------------------------------------
 
     if points:
 
