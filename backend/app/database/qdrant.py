@@ -5,11 +5,16 @@ from qdrant_client.models import (
     PointStruct
 )
 
-from app.config import QDRANT_URL, QDRANT_COLLECTION
+from app.config import (
+    QDRANT_URL,
+    QDRANT_API_KEY,
+    QDRANT_COLLECTION
+)
 
 
 client = QdrantClient(
-    url=QDRANT_URL
+    url=QDRANT_URL,
+    api_key=QDRANT_API_KEY
 )
 
 
@@ -44,12 +49,32 @@ def insert_chunks(chunks):
                 id=chunk["id"],
                 vector=chunk["embedding"],
                 payload={
-                    "repository_id": chunk["repository_id"],
-                    "file_path": chunk["file_path"],
-                    "language": chunk["language"],
-                    "start_line": chunk["start_line"],
-                    "end_line": chunk["end_line"],
-                    "content": chunk["content"]
+                "repository_id": chunk["repository_id"],
+                "commit_sha": chunk.get(
+                "commit_sha"
+                ),
+                "file_path": chunk["file_path"],
+                "language": chunk["language"],
+                "start_line": chunk["start_line"],
+                "end_line": chunk["end_line"],
+                "content": chunk["content"],
+                "chunk_type": chunk.get(
+                    "chunk_type",
+                    "code"
+                ),
+
+                "name": chunk.get(
+                    "name"
+                ),
+
+                "parent": chunk.get(
+                    "parent"
+                ),
+
+                "context": chunk.get(
+                    "context",
+                    []
+                )
                 }
             )
         )
