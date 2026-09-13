@@ -1,18 +1,17 @@
 from datetime import datetime
+import shutil
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services.github_service import (
     clone_repository,
-    get_remote_commit_sha,
     get_repository_key
 )
 
 from app.services.indexing_service import index_repository
 from app.database.mongodb import repositories_collection
 from app.database.qdrant import create_collection
-import shutil
 
 
 router = APIRouter(
@@ -23,11 +22,17 @@ router = APIRouter(
 
 class RepositoryRequest(BaseModel):
 
-    github_url: str
+    github_url: str = Field(
+        ...,
+        min_length=1,
+        max_length=500
+    )
 
 
 @router.post("/index")
 def create_repository(request: RepositoryRequest):
+
+    repository_path = None
 
     try:
 
@@ -36,6 +41,7 @@ def create_repository(request: RepositoryRequest):
         # -----------------------------------------
 
         github_url = request.github_url.strip()
+
 
         # -----------------------------------------
         # 2. Get repository key
@@ -50,21 +56,9 @@ def create_repository(request: RepositoryRequest):
             repository_key
         )
 
-        # -----------------------------------------
-        # 3. Get latest GitHub commit SHA
-        # -----------------------------------------
-
-        remote_commit_sha = get_remote_commit_sha(
-            github_url
-        )
-
-        print(
-            "Latest commit SHA:",
-            remote_commit_sha
-        )
 
         # -----------------------------------------
-        # 4. Find existing repository
+        # 3. Find existing repository
         # -----------------------------------------
 
         existing = repositories_collection.find_one(
@@ -73,45 +67,9 @@ def create_repository(request: RepositoryRequest):
             }
         )
 
-        # -----------------------------------------
-        # 5. Same repository + same commit
-        # -----------------------------------------
-
-        if (
-            existing
-            and
-            existing.get("commit_sha")
-            == remote_commit_sha
-        ):
-
-            print(
-                "Repository version already indexed."
-            )
-
-            return {
-                "message": "Repository is already indexed",
-
-                "repository_id":
-                    existing["_id"],
-
-                "commit_sha":
-                    remote_commit_sha,
-
-                "files":
-                    existing.get(
-                        "files",
-                        0
-                    ),
-
-                "chunks":
-                    existing.get(
-                        "chunks",
-                        0
-                    )
-            }
 
         # -----------------------------------------
-        # 6. Determine repository ID
+        # 4. Determine repository ID
         # -----------------------------------------
 
         if existing:
@@ -139,8 +97,9 @@ def create_repository(request: RepositoryRequest):
                 "Creating new repository ID."
             )
 
+
         # -----------------------------------------
-        # 7. Clone repository
+        # 5. Clone repository
         # -----------------------------------------
 
         (
@@ -152,30 +111,78 @@ def create_repository(request: RepositoryRequest):
             repository_id
         )
 
+
         print(
             "Cloned commit SHA:",
             commit_sha
         )
 
+
         # -----------------------------------------
-        # 8. Create Qdrant collection
+        # 6. Check same repository + same commit
+        # -----------------------------------------
+
+        if (
+            existing
+            and
+            existing.get("commit_sha")
+            == commit_sha
+        ):
+
+            print(
+                "Repository version already indexed."
+            )
+
+            return {
+
+                "message":
+                    "Repository is already indexed",
+
+                "repository_id":
+                    repository_id,
+
+                "commit_sha":
+                    commit_sha,
+
+                "files":
+                    existing.get(
+                        "files",
+                        0
+                    ),
+
+                "chunks":
+                    existing.get(
+                        "chunks",
+                        0
+                    )
+            }
+
+
+        # -----------------------------------------
+        # 7. Create Qdrant collection
         # -----------------------------------------
 
         create_collection()
 
+
         # -----------------------------------------
-        # 9. Index repository
+        # 8. Index repository
         # -----------------------------------------
 
         result = index_repository(
+
             github_url,
+
             repository_id,
+
             commit_sha,
+
             repository_path
         )
 
+
         # -----------------------------------------
-        # 10. Store/update repository metadata
+        # 9. Store/update repository metadata
         # -----------------------------------------
 
         now = datetime.utcnow()
@@ -187,6 +194,7 @@ def create_repository(request: RepositoryRequest):
             },
 
             {
+
                 "$set": {
 
                     "github_url":
@@ -221,19 +229,9 @@ def create_repository(request: RepositoryRequest):
             upsert=True
         )
 
-        # -----------------------------------------
-        # Remove temporary clone
-        # -----------------------------------------
-
-        if repository_path:
-
-            shutil.rmtree(
-            repository_path,
-            ignore_errors=True
-            )
 
         # -----------------------------------------
-        # 11. Return result
+        # 10. Return result
         # -----------------------------------------
 
         return {
@@ -254,6 +252,7 @@ def create_repository(request: RepositoryRequest):
                 result["chunks"]
         }
 
+
     except Exception as e:
 
         print(
@@ -262,6 +261,22 @@ def create_repository(request: RepositoryRequest):
         )
 
         raise HTTPException(
+
             status_code=500,
+
             detail="Repository indexing failed"
         )
+
+
+    finally:
+
+        # -----------------------------------------
+        # Remove temporary clone
+        # -----------------------------------------
+
+        if repository_path:
+
+            shutil.rmtree(
+                repository_path,
+                ignore_errors=True
+            )
