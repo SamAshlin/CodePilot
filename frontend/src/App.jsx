@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import "./App.css";
+import API_URL from "./api";
 
 
 function App() {
@@ -17,6 +18,10 @@ function App() {
   const [indexing, setIndexing] = useState(false);
 
 
+  // -----------------------------------------
+  // Index GitHub repository
+  // -----------------------------------------
+
   const indexRepository = async () => {
 
     if (!githubUrl) {
@@ -29,7 +34,7 @@ function App() {
     try {
 
       const response = await axios.post(
-        "http://localhost:8000/api/repositories/index",
+        `${API_URL}/api/repositories/index`,
         {
           github_url: githubUrl
         }
@@ -40,10 +45,16 @@ function App() {
       );
 
       alert(
+        response.data.message ||
         `Indexed ${response.data.files} files`
       );
 
     } catch (error) {
+
+      console.error(
+        "Indexing error:",
+        error
+      );
 
       alert(
         error.response?.data?.detail ||
@@ -57,6 +68,10 @@ function App() {
   };
 
 
+  // -----------------------------------------
+  // Ask question
+  // -----------------------------------------
+
   const askQuestion = async () => {
 
     if (!repositoryId) {
@@ -64,7 +79,8 @@ function App() {
       return;
     }
 
-    if (!question) {
+    if (!question.trim()) {
+      alert("Enter a question");
       return;
     }
 
@@ -73,7 +89,7 @@ function App() {
     try {
 
       const response = await axios.post(
-        "http://localhost:8000/api/chat/",
+        `${API_URL}/api/chat/`,
         {
           repository_id: repositoryId,
           question: question
@@ -85,10 +101,15 @@ function App() {
       );
 
       setCitations(
-        response.data.citations
+        response.data.citations || []
       );
 
     } catch (error) {
+
+      console.error(
+        "Chat error:",
+        error
+      );
 
       alert(
         error.response?.data?.detail ||
@@ -106,17 +127,27 @@ function App() {
     <div className="app">
 
       <header>
-        <h1>Codebase RAG Assistant</h1>
+
+        <h1>
+          Codebase RAG Assistant
+        </h1>
 
         <p>
           Ask questions about your GitHub repository
         </p>
+
       </header>
 
 
+      {/* ---------------------------------- */}
+      {/* Repository Section */}
+      {/* ---------------------------------- */}
+
       <section className="repository">
 
-        <h2>Repository</h2>
+        <h2>
+          Repository
+        </h2>
 
         <div className="input-row">
 
@@ -133,25 +164,39 @@ function App() {
             onClick={indexRepository}
             disabled={indexing}
           >
+
             {indexing
               ? "Indexing..."
-              : "Index Repository"}
+              : "Index Repository"
+            }
+
           </button>
 
         </div>
 
+
         {repositoryId && (
+
           <p className="success">
-            Repository indexed successfully
+
+            Repository ready
+
           </p>
+
         )}
 
       </section>
 
 
+      {/* ---------------------------------- */}
+      {/* Chat Section */}
+      {/* ---------------------------------- */}
+
       <section className="chat">
 
-        <h2>Ask about the code</h2>
+        <h2>
+          Ask about the code
+        </h2>
 
         <textarea
           placeholder="Where is authentication implemented?"
@@ -161,43 +206,73 @@ function App() {
           }
         />
 
+
         <button
           onClick={askQuestion}
           disabled={loading}
         >
-          {loading ? "Thinking..." : "Ask"}
+
+          {loading
+            ? "Thinking..."
+            : "Ask"
+          }
+
         </button>
 
+
+        {/* -------------------------------- */}
+        {/* Answer */}
+        {/* -------------------------------- */}
 
         {answer && (
 
           <div className="answer">
 
-            <h3>Answer</h3>
+            <h3>
+              Answer
+            </h3>
 
-            <p>{answer}</p>
+            <p>
+              {answer}
+            </p>
 
 
-            <h3>Relevant Files</h3>
+            <h3>
+              Relevant Files
+            </h3>
 
-            {citations.map(
-              (citation, index) => (
 
-                <div
-                  className="citation"
-                  key={index}
-                >
+            {citations.length > 0 ? (
 
-                  📄 {citation.file}
+              citations.map(
+                (citation, index) => (
 
-                  <span>
-                    Lines {citation.start_line}-
-                    {citation.end_line}
-                  </span>
+                  <div
+                    className="citation"
+                    key={index}
+                  >
 
-                </div>
+                    <div>
+                      📄 {citation.file}
+                    </div>
 
+                    <span>
+                      Lines{" "}
+                      {citation.start_line}-
+                      {citation.end_line}
+                    </span>
+
+                  </div>
+
+                )
               )
+
+            ) : (
+
+              <p>
+                No citations available.
+              </p>
+
             )}
 
           </div>
