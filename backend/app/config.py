@@ -38,5 +38,5 @@ QDRANT_COLLECTION = os.getenv(
 
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
-    "http://localhost:5173"
+    "http://localhost:3000"
 )
