@@ -3,7 +3,6 @@ import axios from "axios";
 import "./App.css";
 import API_URL from "./api";
 
-
 function App() {
 
   const [githubUrl, setGithubUrl] = useState("");
@@ -17,18 +16,21 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
 
+  const [error, setError] = useState("");
+
 
   // -----------------------------------------
-  // Index GitHub repository
+  // Index repository
   // -----------------------------------------
 
   const indexRepository = async () => {
 
-    if (!githubUrl) {
-      alert("Enter a GitHub repository URL");
+    if (!githubUrl.trim()) {
+      setError("Enter a GitHub repository URL.");
       return;
     }
 
+    setError("");
     setIndexing(true);
 
     try {
@@ -36,17 +38,12 @@ function App() {
       const response = await axios.post(
         `${API_URL}/api/repositories/index`,
         {
-          github_url: githubUrl
+          github_url: githubUrl.trim()
         }
       );
 
       setRepositoryId(
         response.data.repository_id
-      );
-
-      alert(
-        response.data.message ||
-        `Indexed ${response.data.files} files`
       );
 
     } catch (error) {
@@ -56,9 +53,9 @@ function App() {
         error
       );
 
-      alert(
+      setError(
         error.response?.data?.detail ||
-        "Indexing failed"
+        "Repository indexing failed."
       );
 
     } finally {
@@ -75,15 +72,16 @@ function App() {
   const askQuestion = async () => {
 
     if (!repositoryId) {
-      alert("Index a repository first");
+      setError("Index a repository before asking a question.");
       return;
     }
 
     if (!question.trim()) {
-      alert("Enter a question");
+      setError("Enter a question about the repository.");
       return;
     }
 
+    setError("");
     setLoading(true);
 
     try {
@@ -92,7 +90,7 @@ function App() {
         `${API_URL}/api/chat/`,
         {
           repository_id: repositoryId,
-          question: question
+          question: question.trim()
         }
       );
 
@@ -111,9 +109,9 @@ function App() {
         error
       );
 
-      alert(
+      setError(
         error.response?.data?.detail ||
-        "Failed to get answer"
+        "Failed to generate an answer."
       );
 
     } finally {
@@ -124,166 +122,353 @@ function App() {
 
 
   return (
+
     <div className="app">
 
-      <header>
+      {/* =====================================
+          HEADER
+      ===================================== */}
 
-        <h1>
-          Codebase RAG Assistant
-        </h1>
+      <header className="header">
 
-        <p>
-          Ask questions about your GitHub repository
-        </p>
+        <div className="header-inner">
+
+          <div className="brand">
+
+            <div className="brand-icon">
+              ◈
+            </div>
+
+            <div>
+
+              <h1>
+                CodePilot
+              </h1>
+
+              <p>
+                AI-powered codebase understanding
+              </p>
+
+            </div>
+
+          </div>
+
+          <div className="header-badge">
+            AI CODE ASSISTANT
+          </div>
+
+        </div>
 
       </header>
 
 
-      {/* ---------------------------------- */}
-      {/* Repository Section */}
-      {/* ---------------------------------- */}
+      {/* =====================================
+          MAIN
+      ===================================== */}
 
-      <section className="repository">
-
-        <h2>
-          Repository
-        </h2>
-
-        <div className="input-row">
-
-          <input
-            type="text"
-            placeholder="https://github.com/user/repository"
-            value={githubUrl}
-            onChange={(e) =>
-              setGithubUrl(e.target.value)
-            }
-          />
-
-          <button
-            onClick={indexRepository}
-            disabled={indexing}
-          >
-
-            {indexing
-              ? "Indexing..."
-              : "Index Repository"
-            }
-
-          </button>
-
-        </div>
+      <main className="main">
 
 
-        {repositoryId && (
+        {/* ===================================
+            REPOSITORY
+        =================================== */}
 
-          <p className="success">
+        <section className="section">
 
-            Repository ready
+          <div className="section-header">
 
-          </p>
+            <div>
 
-        )}
+              <h2 className="section-title">
+                Repository
+              </h2>
 
-      </section>
-
-
-      {/* ---------------------------------- */}
-      {/* Chat Section */}
-      {/* ---------------------------------- */}
-
-      <section className="chat">
-
-        <h2>
-          Ask about the code
-        </h2>
-
-        <textarea
-          placeholder="Where is authentication implemented?"
-          value={question}
-          onChange={(e) =>
-            setQuestion(e.target.value)
-          }
-        />
-
-
-        <button
-          onClick={askQuestion}
-          disabled={loading}
-        >
-
-          {loading
-            ? "Thinking..."
-            : "Ask"
-          }
-
-        </button>
-
-
-        {/* -------------------------------- */}
-        {/* Answer */}
-        {/* -------------------------------- */}
-
-        {answer && (
-
-          <div className="answer">
-
-            <h3>
-              Answer
-            </h3>
-
-            <p>
-              {answer}
-            </p>
-
-
-            <h3>
-              Relevant Files
-            </h3>
-
-
-            {citations.length > 0 ? (
-
-              citations.map(
-                (citation, index) => (
-
-                  <div
-                    className="citation"
-                    key={index}
-                  >
-
-                    <div>
-                      📄 {citation.file}
-                    </div>
-
-                    <span>
-                      Lines{" "}
-                      {citation.start_line}-
-                      {citation.end_line}
-                    </span>
-
-                  </div>
-
-                )
-              )
-
-            ) : (
-
-              <p>
-                No citations available.
+              <p className="section-description">
+                Connect a public GitHub repository
+                to analyze its codebase.
               </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="section-content">
+
+            <div className="repository-input-row">
+
+              <div className="repository-input-wrapper">
+
+                <span className="repository-input-icon">
+                  ◇
+                </span>
+
+                <input
+                  className="repository-input"
+                  type="text"
+                  placeholder="https://github.com/user/repository"
+                  value={githubUrl}
+                  onChange={(e) =>
+                    setGithubUrl(e.target.value)
+                  }
+                />
+
+              </div>
+
+
+              <button
+                className="primary-button"
+                onClick={indexRepository}
+                disabled={indexing}
+              >
+
+                {indexing
+                  ? "Indexing..."
+                  : "Index Repository"
+                }
+
+              </button>
+
+            </div>
+
+
+            {repositoryId && (
+
+              <div className="repository-status">
+
+                <span className="status-dot" />
+
+                Repository indexed and ready
+
+              </div>
 
             )}
 
           </div>
 
+        </section>
+
+
+        {/* ===================================
+            QUESTION
+        =================================== */}
+
+        <section className="section">
+
+          <div className="section-header">
+
+            <div>
+
+              <h2 className="section-title">
+                Ask about your code
+              </h2>
+
+              <p className="section-description">
+                Ask questions about architecture,
+                functions, authentication, APIs,
+                or implementation details.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="section-content">
+
+            <div className="question-area">
+
+              <textarea
+                className="question-input"
+                placeholder="Where is authentication implemented?"
+                value={question}
+                onChange={(e) =>
+                  setQuestion(e.target.value)
+                }
+              />
+
+            </div>
+
+
+            <div className="question-footer">
+
+              <span className="question-hint">
+                Answers are grounded in the indexed repository.
+              </span>
+
+              <button
+                className="primary-button ask-button"
+                onClick={askQuestion}
+                disabled={loading || !repositoryId}
+              >
+
+                {loading
+                  ? "Analyzing..."
+                  : "Ask Codebase"
+                }
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ===================================
+            ERROR
+        =================================== */}
+
+        {error && (
+
+          <div
+            style={{
+              marginBottom: "20px",
+              padding: "12px 14px",
+              border: "1px solid rgba(239,68,68,0.25)",
+              borderRadius: "9px",
+              background: "rgba(239,68,68,0.08)",
+              color: "#fca5a5",
+              fontSize: "13px"
+            }}
+          >
+
+            {error}
+
+          </div>
+
         )}
 
-      </section>
+
+        {/* ===================================
+            RESULTS
+        =================================== */}
+
+        {answer && (
+
+          <section className="results">
+
+            <div className="results-grid">
+
+
+              {/* =============================
+                  ANSWER
+              ============================== */}
+
+              <div className="answer-card">
+
+                <div className="card-header">
+
+                  <h3 className="card-title">
+                    Answer
+                  </h3>
+
+                  <span className="ai-label">
+                    AI GENERATED
+                  </span>
+
+                </div>
+
+
+                <div className="answer-content">
+
+                  {answer}
+
+                </div>
+
+              </div>
+
+
+              {/* =============================
+                  SOURCES
+              ============================== */}
+
+              <div className="sources-card">
+
+                <div className="card-header">
+
+                  <h3 className="card-title">
+                    Sources
+                  </h3>
+
+                  <span className="ai-label">
+                    {citations.length}
+                  </span>
+
+                </div>
+
+
+                {citations.length > 0 ? (
+
+                  <div className="sources-list">
+
+                    {citations.map(
+                      (citation, index) => (
+
+                        <div
+                          className="citation"
+                          key={index}
+                        >
+
+                          <div className="citation-file">
+
+                            <span className="file-icon">
+                              ◇
+                            </span>
+
+                            {citation.file}
+
+                          </div>
+
+                          <div className="citation-meta">
+
+                            Lines{" "}
+                            {citation.start_line}
+                            {" – "}
+                            {citation.end_line}
+
+                          </div>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                ) : (
+
+                  <div className="empty-sources">
+                    No source references available.
+                  </div>
+
+                )}
+
+              </div>
+
+            </div>
+
+          </section>
+
+        )}
+
+      </main>
+
+
+      {/* =====================================
+          FOOTER
+      ===================================== */}
+
+      <footer className="footer">
+
+        CodePilot · AI-powered repository analysis
+
+      </footer>
 
     </div>
+
   );
 }
-
 
 export default App;
