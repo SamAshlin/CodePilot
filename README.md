@@ -59,7 +59,7 @@ Where is JWT authentication implemented?
 Sending the question directly to an LLM does not give it access to these files.
 CodePilot solves this by retrieving the relevant code first.
 
-Technology Stack
+# Technology Stack
 Frontend
 React, Vite, Axios, CSS
 Backend
